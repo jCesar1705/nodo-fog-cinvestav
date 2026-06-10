@@ -5,7 +5,10 @@ import mx.cinvestav.emergencias.nodofog.model.PaseListaEntry
 import mx.cinvestav.emergencias.nodofog.model.Victima
 import org.springframework.data.jpa.repository.JpaRepository
 
-interface VictimaRepository : JpaRepository<Victima, String>
+interface VictimaRepository : JpaRepository<Victima, String> {
+    /** Buscar por matrícula — usado en el login (AuthController). */
+    fun findByMatricula(matricula: String): Victima?
+}
 
 interface HeartbeatRepository : JpaRepository<Heartbeat, String> {
     /** Heartbeats con timestamp >= [desde] — usado para la ventana de 20 min (T4). */
