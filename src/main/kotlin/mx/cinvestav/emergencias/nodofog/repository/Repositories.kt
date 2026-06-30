@@ -1,8 +1,6 @@
 package mx.cinvestav.emergencias.nodofog.repository
 
-import mx.cinvestav.emergencias.nodofog.model.Heartbeat
-import mx.cinvestav.emergencias.nodofog.model.PaseListaEntry
-import mx.cinvestav.emergencias.nodofog.model.Victima
+import mx.cinvestav.emergencias.nodofog.model.*
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface VictimaRepository : JpaRepository<Victima, String> {
@@ -18,4 +16,14 @@ interface HeartbeatRepository : JpaRepository<Heartbeat, String> {
 interface PaseListaRepository : JpaRepository<PaseListaEntry, String> {
     fun findByEmergenciaId(emergenciaId: String): List<PaseListaEntry>
     fun findByVictimaIdAndEmergenciaId(victimaId: String, emergenciaId: String): PaseListaEntry?
+}
+
+// ── Sprint 3: localización indoor (CU-02, CU-05) ─────────────────────────────
+
+/** Posiciones activas de víctimas durante la emergencia. */
+interface UbicacionRepository : JpaRepository<UbicacionEntry, String>
+
+/** Radio map de calibración para k-NN. */
+interface RadioMapRepository : JpaRepository<RadioMapEntry, Long> {
+    fun findByZonaId(zonaId: String): List<RadioMapEntry>
 }

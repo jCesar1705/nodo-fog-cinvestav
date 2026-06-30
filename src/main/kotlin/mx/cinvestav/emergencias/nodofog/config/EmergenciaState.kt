@@ -29,4 +29,6 @@ class EmergenciaState {
     fun desactivar() {
         activa = false
     }
+
+    fun isActiva(): Boolean = activa
 }
