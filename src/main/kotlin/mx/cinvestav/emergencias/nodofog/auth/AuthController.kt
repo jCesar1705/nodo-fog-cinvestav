@@ -53,7 +53,7 @@ class AuthController(
                 .body(mapOf("error" to "Contraseña incorrecta"))
         }
 
-        val rol = "USUARIO"
+        val rol = victima.rol.ifBlank { "USUARIO" }
         val token = jwtUtil.generarToken(victima.id, victima.nombre, rol)
 
         // Devolver el id interno como identificador para que el heartbeat lo use correctamente

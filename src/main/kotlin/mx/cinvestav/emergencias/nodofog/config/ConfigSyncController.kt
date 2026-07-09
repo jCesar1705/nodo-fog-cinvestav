@@ -48,6 +48,7 @@ class ConfigSyncController(
             val identificador = u["identificador"] as? String ?: return@forEach
             val nombre        = u["nombre"]        as? String ?: return@forEach
             val passwordHash  = u["passwordHash"]  as? String ?: ""
+            val rolStr        = u["rol"]           as? String ?: ""
 
             // Buscar si ya existe por matrícula o por id
             val existente = victimaRepository.findByMatricula(identificador)
@@ -61,6 +62,7 @@ class ConfigSyncController(
                     matricula    = identificador,
                     passwordHash = passwordHash
                 )
+                nueva.rol = rolStr
                 victimaRepository.save(nueva)
             } else {
                 // Actualizar nombre y hash si vino un hash válido de BCrypt (data class → copy())
@@ -68,6 +70,7 @@ class ConfigSyncController(
                     nombre = nombre,
                     passwordHash = if (passwordHash.startsWith("\$2a\$")) passwordHash else existente.passwordHash
                 )
+                actualizado.rol = rolStr
                 victimaRepository.save(actualizado)
             }
             usuariosPersistidos++

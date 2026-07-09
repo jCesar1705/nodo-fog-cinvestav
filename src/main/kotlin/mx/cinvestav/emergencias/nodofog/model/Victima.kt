@@ -22,5 +22,6 @@ data class Victima(
     val medicamentos: String = "",
     val edificioId: String = "",
     val consentimientoAceptado: Boolean = false,
-    val timestampRegistro: Long = System.currentTimeMillis()
+    val timestampRegistro: Long = System.currentTimeMillis(),
+    var rol: String = "USUARIO"
 )
