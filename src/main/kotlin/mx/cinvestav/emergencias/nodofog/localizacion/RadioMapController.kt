@@ -5,6 +5,7 @@ import mx.cinvestav.emergencias.nodofog.localizacion.dto.CalibracionRequest
 import mx.cinvestav.emergencias.nodofog.model.RadioMapEntry
 import mx.cinvestav.emergencias.nodofog.repository.RadioMapRepository
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -27,12 +28,19 @@ class RadioMapController(
 ) {
     private val gson = Gson()
 
+    /** Obtiene el rol desde el JWT validado por [mx.cinvestav.emergencias.nodofog.security.JwtFilter]. */
+    private fun rolActual(): String {
+        val auth = SecurityContextHolder.getContext().authentication
+        return auth?.authorities?.firstOrNull()
+            ?.authority?.removePrefix("ROLE_") ?: "USUARIO"
+    }
+
     /** Guarda un punto de calibración. Se puede llamar varias veces para promediar. */
     @PostMapping("/calibrar")
     fun calibrar(
-        @RequestHeader("X-Role") rol: String,
         @RequestBody req: CalibracionRequest
     ): ResponseEntity<Any> {
+        val rol = rolActual()
         if (rol != "ADMINISTRADOR" && rol != "ADMIN" && rol != "BRIGADISTA") {
             return ResponseEntity.status(403)
                 .body(mapOf("error" to "Se requiere rol ADMINISTRADOR o BRIGADISTA para calibrar"))
@@ -66,9 +74,9 @@ class RadioMapController(
     /** Elimina un punto de calibración. */
     @DeleteMapping("/{id}")
     fun eliminar(
-        @RequestHeader("X-Role") rol: String,
         @PathVariable id: Long
     ): ResponseEntity<Any> {
+        val rol = rolActual()
         if (rol != "ADMINISTRADOR" && rol != "ADMIN") {
             return ResponseEntity.status(403).body(mapOf("error" to "Se requiere ADMIN"))
         }

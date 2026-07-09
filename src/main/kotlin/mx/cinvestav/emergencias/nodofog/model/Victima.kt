@@ -14,6 +14,7 @@ data class Victima(
     @Id val id: String = UUID.randomUUID().toString(),
     val nombre: String = "",
     @Column(unique = true) val matricula: String = "",
+    val passwordHash: String = "",
     // Datos médicos — TODO: cifrar con AES antes de persistir (R8)
     val tipoSangre: String = "",
     val alergias: String = "",

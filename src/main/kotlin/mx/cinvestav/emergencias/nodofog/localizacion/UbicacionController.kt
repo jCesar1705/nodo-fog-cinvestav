@@ -4,6 +4,7 @@ import mx.cinvestav.emergencias.nodofog.config.EmergenciaState
 import mx.cinvestav.emergencias.nodofog.localizacion.dto.FingerprintRequest
 import mx.cinvestav.emergencias.nodofog.repository.UbicacionRepository
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.*
 
 /**
@@ -46,9 +47,11 @@ class UbicacionController(
      * Requiere rol BRIGADISTA o ADMINISTRADOR.
      */
     @GetMapping
-    fun listarUbicaciones(
-        @RequestHeader("X-Role") rol: String
-    ): ResponseEntity<Any> {
+    fun listarUbicaciones(): ResponseEntity<Any> {
+        // Obtener rol desde JWT validado
+        val auth = SecurityContextHolder.getContext().authentication
+        val rol = auth?.authorities?.firstOrNull()
+            ?.authority?.removePrefix("ROLE_") ?: "USUARIO"
         if (rol != "BRIGADISTA" && rol != "ADMINISTRADOR" && rol != "ADMIN") {
             return ResponseEntity.status(403)
                 .body(mapOf("error" to "Se requiere rol BRIGADISTA"))

@@ -28,28 +28,21 @@ class LocalizacionService(
 
     companion object {
         const val K = 3                // vecinos más cercanos
-        const val PENALTY_RSSI = 100f  // penalización si el AP no está en la referencia
+        const val PENALTY_RSSI = 40f   // penalización si un AP calibrado no aparece en el escaneo actual
     }
 
-    /**
-     * Recibe el fingerprint de una víctima, estima su zona con k-NN
-     * y publica la posición por MQTT para que la app brigadista actualice el plano.
-     */
     fun procesarUbicacion(req: FingerprintRequest): UbicacionResponse {
 
-        log.info("Fingerprint recibido: victimaId={} APs={} datos={}",
-            req.victimaId, req.fingerprint.size, req.fingerprint)
+        log.info("Fingerprint recibido: victimaId={} APs={}", req.victimaId, req.fingerprint.size)
 
         val entradasRadioMap = radioMapRepo.findAll()
 
         val zonaEstimada = if (entradasRadioMap.isEmpty()) {
-            // Sin radio map — zona desconocida (calibrar primero)
             ZonaKnn("DESCONOCIDA", "Zona desconocida", 0f)
         } else {
             estimarConKnn(req.fingerprint, entradasRadioMap)
         }
 
-        // Guardar o actualizar la posición de esta víctima
         val entrada = UbicacionEntry(
             victimaId  = req.victimaId,
             zonaId     = zonaEstimada.id,
@@ -60,7 +53,6 @@ class LocalizacionService(
         )
         ubicacionRepo.save(entrada)
 
-        // Publicar MQTT para que la app brigadista actualice el plano (QA-02, ≤3s)
         val payload = gson.toJson(mapOf(
             "victimaId"  to req.victimaId,
             "zona"       to zonaEstimada.nombre,
@@ -86,48 +78,63 @@ class LocalizacionService(
     /**
      * Algoritmo k-NN en espacio de RSSI.
      *
-     * Para cada entrada del radio map calcula la distancia Euclidiana
-     * al fingerprint recibido. Toma los K más cercanos y vota por zona.
-     *
-     * Distancia entre dos fingerprints:
-     *   d = √ Σ (rssi_medido - rssi_referencia)²
-     * Si un BSSID no está en la referencia: penalización de 100 (AP muy distante).
+     * FIX: se itera sobre los BSSIDs de la REFERENCIA (radio map, ~5 APs),
+     * no sobre los APs del escaneo medido (que puede tener 40-70 APs en
+     * entornos densos como CINVESTAV). Iterar sobre el escaneo completo
+     * diluye la señal real con decenas de penalizaciones de APs que
+     * ninguna zona tiene calibrados, haciendo que la clasificación
+     * dependa más de "cuántos AP coincidieron" que de la similitud real
+     * de RSSI entre las zonas candidatas.
      */
     private fun estimarConKnn(
         fingerprint: List<BssidRssi>,
         radioMap   : List<RadioMapEntry>
     ): ZonaKnn {
 
+        val medidoMap = fingerprint.associate { it.bssid to it.rssi }
+
         val distancias = radioMap.map { entrada ->
             val ref = parsearFingerprint(entrada.fingerprint)
-            val dist = distanciaEuclidiana(fingerprint, ref)
+            val dist = distanciaEuclidiana(ref, medidoMap)
             Triple(entrada.zonaId, entrada.zonaNombre, dist)
         }.sortedBy { it.third }
 
-        // Tomar los K vecinos más cercanos
         val vecinos = distancias.take(K)
 
-        // Votar por zona (mayoría simple)
-        val votos = vecinos.groupBy { it.first }
-        val ganador = votos.maxByOrNull { it.value.size }!!
-        val zonaId     = ganador.key
-        val zonaNombre = ganador.value.first().second
-        val confianza  = ganador.value.size.toFloat() / vecinos.size.toFloat()
+        // Voto ponderado por distancia inversa: un vecino muy cercano (dist baja)
+        // pesa mucho más que uno lejano, en vez de contar cada voto por igual.
+        // Esto evita que una zona con más puntos de calibración "le gane" a la
+        // zona con el match real más fuerte solo por tener más entradas.
+        val pesoPorZona = vecinos
+            .groupBy { it.first }
+            .mapValues { (_, items) -> items.sumOf { (1.0 / (it.third + 1f)).toDouble() } }
 
-        return ZonaKnn(zonaId, zonaNombre, confianza)
+        val zonaIdGanadora = pesoPorZona.maxByOrNull { it.value }!!.key
+        val zonaNombre = vecinos.first { it.first == zonaIdGanadora }.second
+        val pesoTotal = pesoPorZona.values.sum()
+        val confianza = (pesoPorZona[zonaIdGanadora]!! / pesoTotal).toFloat()
+
+        log.info("k-NN distancias: {}", distancias.map { "${it.second}=${"%.1f".format(it.third)}" })
+
+        return ZonaKnn(zonaIdGanadora, zonaNombre, confianza)
     }
 
+    /**
+     * Distancia Euclidiana iterando sobre los APs de REFERENCIA (calibración).
+     * Para cada AP calibrado: si aparece en el escaneo medido, diferencia real;
+     * si no aparece, penalización fija (el AP de esa zona ya no se ve).
+     */
     private fun distanciaEuclidiana(
-        medido   : List<BssidRssi>,
-        referencia: List<BssidRssi>
+        referencia: List<BssidRssi>,
+        medido    : Map<String, Int>
     ): Float {
         var suma = 0f
-        medido.forEach { m ->
-            val ref = referencia.find { it.bssid == m.bssid }
-            suma += if (ref != null) {
-                (m.rssi - ref.rssi).toFloat().pow(2)
+        referencia.forEach { ref ->
+            val rssiMedido = medido[ref.bssid]
+            suma += if (rssiMedido != null) {
+                (rssiMedido - ref.rssi).toFloat().pow(2)
             } else {
-                PENALTY_RSSI.pow(2)   // AP no en el radio map → penalizar
+                PENALTY_RSSI.pow(2)
             }
         }
         return sqrt(suma)
@@ -138,7 +145,6 @@ class LocalizacionService(
         return try { gson.fromJson(json, tipo) } catch (e: Exception) { emptyList() }
     }
 
-    /** Elimina todas las posiciones activas al terminar la emergencia (R7). */
     fun limpiarUbicaciones() {
         ubicacionRepo.deleteAll()
         log.info("Ubicaciones de víctimas eliminadas al finalizar la emergencia (R7)")

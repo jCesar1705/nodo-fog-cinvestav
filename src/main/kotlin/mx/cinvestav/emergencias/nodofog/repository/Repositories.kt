@@ -27,3 +27,7 @@ interface UbicacionRepository : JpaRepository<UbicacionEntry, String>
 interface RadioMapRepository : JpaRepository<RadioMapEntry, Long> {
     fun findByZonaId(zonaId: String): List<RadioMapEntry>
 }
+
+// ── Sprint 4: incidentes (CU-04) ─────────────────────────────────────────────
+
+interface IncidenteRepository : JpaRepository<IncidenteEntry, String>

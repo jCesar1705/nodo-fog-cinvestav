@@ -28,6 +28,14 @@ dependencies {
     implementation("com.hivemq:hivemq-mqtt-client:1.3.7")
     implementation("com.google.code.gson:gson:2.11.0")
     runtimeOnly("com.h2database:h2")
+
+    // Spring Security (BCryptPasswordEncoder)
+    implementation("org.springframework.boot:spring-boot-starter-security")
+
+    // JWT — jjwt
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
