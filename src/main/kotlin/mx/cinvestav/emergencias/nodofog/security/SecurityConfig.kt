@@ -2,6 +2,7 @@ package mx.cinvestav.emergencias.nodofog.security
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
@@ -38,6 +39,9 @@ class SecurityConfig(private val jwtFilter: JwtFilter) {
                     .requestMatchers("/h2/**").permitAll()
                     // Heartbeat público (spec Sprint 4)
                     .requestMatchers("/api/victimas/heartbeat").permitAll()
+                    // La víctima registra sus datos médicos con su propio JWT (CU-03)
+                    .requestMatchers(HttpMethod.POST, "/api/salud").permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/radiomap").permitAll()
                     // Todo lo demás requiere JWT válido
                     .anyRequest().authenticated()
             }

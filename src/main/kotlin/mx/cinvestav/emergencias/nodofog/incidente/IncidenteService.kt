@@ -7,6 +7,7 @@ import mx.cinvestav.emergencias.nodofog.model.IncidenteEntry
 import mx.cinvestav.emergencias.nodofog.mqtt.MqttPublisher
 import mx.cinvestav.emergencias.nodofog.repository.IncidenteRepository
 import mx.cinvestav.emergencias.nodofog.security.AesService
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 
@@ -22,6 +23,7 @@ class IncidenteService(
     private val aesService: AesService,
     @Value("\${fog.node-id}") private val nodeId: String
 ) {
+    private val log = LoggerFactory.getLogger(IncidenteService::class.java)
     private val gson = Gson()
 
     fun crear(req: CrearIncidenteRequest): IncidenteEntry {
@@ -36,6 +38,8 @@ class IncidenteService(
             emergenciaId       = emergenciaState.emergenciaId ?: ""
         )
         val guardado = incidenteRepo.save(entry)
+        log.info("Incidente registrado — id={} tipo={} zona='{}' reportadoPor={}",
+            guardado.id, guardado.tipo, guardado.zonaNombre, guardado.reportadoPorId)
 
         // Publicar MQTT solo para brigadistas
         val payload = gson.toJson(mapOf(
@@ -72,5 +76,11 @@ class IncidenteService(
     fun cambiarEstado(id: String, nuevoEstado: String): IncidenteEntry? {
         val entry = incidenteRepo.findById(id).orElse(null) ?: return null
         return incidenteRepo.save(entry.copy(estado = nuevoEstado))
+    }
+
+    fun limpiarIncidentes() {
+        val total = incidenteRepo.count()
+        incidenteRepo.deleteAll()
+        log.info("Incidentes eliminados al finalizar emergencia — {} registros borrados (R7)", total)
     }
 }

@@ -4,6 +4,7 @@ import mx.cinvestav.emergencias.nodofog.repository.VictimaRepository
 import mx.cinvestav.emergencias.nodofog.security.JwtUtil
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
 
@@ -53,7 +54,7 @@ class AuthController(
                 .body(mapOf("error" to "Contraseña incorrecta"))
         }
 
-        val rol = victima.rol.ifBlank { "USUARIO" }
+        val rol = victima.rol.ifBlank { "VICTIMA" }
         val token = jwtUtil.generarToken(victima.id, victima.nombre, rol)
 
         // Devolver el id interno como identificador para que el heartbeat lo use correctamente
@@ -68,7 +69,33 @@ class AuthController(
 
     @PutMapping("/cambiar-password")
     fun cambiarPassword(@RequestBody body: Map<String, String>): ResponseEntity<Any> {
-        // TODO Sprint-seguridad: implementar cambio de contraseña
-        return ResponseEntity.ok(mapOf("mensaje" to "Funcionalidad disponible en Sprint de seguridad"))
+        val victimaId = SecurityContextHolder.getContext()
+            .authentication?.name ?: return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+
+        val passwordActual = body["passwordActual"] ?: ""
+        val passwordNueva  = body["passwordNueva"] ?: ""
+
+        val victima = victimaRepository.findByMatricula(victimaId)
+            ?: victimaRepository.findById(victimaId).orElse(null)
+
+        if (victima == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(mapOf("error" to "Usuario no encontrado"))
+        }
+
+        if (!passwordEncoder.matches(passwordActual, victima.passwordHash)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(mapOf("error" to "Contraseña actual incorrecta"))
+        }
+
+        if (passwordNueva.length < 4) {
+            return ResponseEntity.badRequest()
+                .body(mapOf("error" to "La contraseña debe tener al menos 4 caracteres"))
+        }
+
+        val actualizado = victima.copy(passwordHash = passwordEncoder.encode(passwordNueva)!!)
+        victimaRepository.save(actualizado)
+
+        return ResponseEntity.ok(mapOf("mensaje" to "Contraseña actualizada correctamente"))
     }
 }

@@ -23,9 +23,9 @@ class DataInitializer(
     private val log = LoggerFactory.getLogger(DataInitializer::class.java)
 
     private val rolPorMatricula = mapOf(
-        "A07654321" to "USUARIO",
+        "A07654321" to "VICTIMA",
         "A01234567" to "BRIGADISTA",
-        "EXT-001" to "USUARIO"
+        "EXT-001" to "VICTIMA"
     )
 
     override fun run(args: ApplicationArguments) {
@@ -89,7 +89,7 @@ class DataInitializer(
         // Si los usuarios ya existían de un arranque previo sin rol, asignarlo ahora.
         val sinRol = victimaRepository.findAll().filter { it.rol.isNullOrBlank() }
         if (sinRol.isNotEmpty()) {
-            val actualizados = sinRol.map { it.copy(rol = rolPorMatricula[it.matricula] ?: "USUARIO") }
+            val actualizados = sinRol.map { it.copy(rol = rolPorMatricula[it.matricula] ?: "VICTIMA") }
             victimaRepository.saveAll(actualizados)
             log.info("rol asignado para {} víctimas existentes", actualizados.size)
         }

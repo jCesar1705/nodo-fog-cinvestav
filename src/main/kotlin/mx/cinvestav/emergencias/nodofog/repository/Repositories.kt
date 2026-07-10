@@ -31,3 +31,7 @@ interface RadioMapRepository : JpaRepository<RadioMapEntry, Long> {
 // ── Sprint 4: incidentes (CU-04) ─────────────────────────────────────────────
 
 interface IncidenteRepository : JpaRepository<IncidenteEntry, String>
+
+// ── Sprint 5: datos médicos (CU-03) ──────────────────────────────────────────
+
+interface SaludRepository : JpaRepository<SaludEntry, String>
