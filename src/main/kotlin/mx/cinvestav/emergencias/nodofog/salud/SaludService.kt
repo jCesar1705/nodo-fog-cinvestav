@@ -20,6 +20,7 @@ class SaludService(
             tipoSangreCifrado      = aesService.cifrar(req.tipoSangre),
             alergiasCifrado        = aesService.cifrar(req.alergias),
             condicionesCifrado     = aesService.cifrar(req.condicionesMedicas),
+            medicamentosCifrado    = aesService.cifrar(req.medicamentos),
             consentimientoLFPDPPP  = req.consentimientoLFPDPPP,
             timestamp              = System.currentTimeMillis()
         )
@@ -36,6 +37,7 @@ class SaludService(
             "tipoSangre"            to aesService.descifrar(entry.tipoSangreCifrado),
             "alergias"              to aesService.descifrar(entry.alergiasCifrado),
             "condicionesMedicas"    to aesService.descifrar(entry.condicionesCifrado),
+            "medicamentos"          to aesService.descifrar(entry.medicamentosCifrado),
             "consentimientoLFPDPPP" to entry.consentimientoLFPDPPP,
             "timestamp"             to entry.timestamp
         )

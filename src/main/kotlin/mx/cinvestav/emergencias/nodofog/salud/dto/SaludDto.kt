@@ -5,5 +5,6 @@ data class RegistrarSaludRequest(
     val tipoSangre: String = "",
     val alergias: String = "",
     val condicionesMedicas: String = "",
+    val medicamentos: String = "",
     val consentimientoLFPDPPP: Boolean = false
 )

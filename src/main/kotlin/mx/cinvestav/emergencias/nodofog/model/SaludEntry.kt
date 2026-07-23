@@ -9,6 +9,7 @@ data class SaludEntry(
     val tipoSangreCifrado: String = "",
     val alergiasCifrado: String = "",
     val condicionesCifrado: String = "",
+    val medicamentosCifrado: String = "",
     val consentimientoLFPDPPP: Boolean = false,
     val timestamp: Long = System.currentTimeMillis()
 )
