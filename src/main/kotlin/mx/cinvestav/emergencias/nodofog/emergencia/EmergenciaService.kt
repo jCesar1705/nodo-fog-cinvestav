@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import mx.cinvestav.emergencias.nodofog.config.EmergenciaState
 import mx.cinvestav.emergencias.nodofog.emergencia.dto.ActivarEmergenciaRequest
 import mx.cinvestav.emergencias.nodofog.emergencia.dto.AlertaMensaje
+import mx.cinvestav.emergencias.nodofog.incidente.IncidenteService
 import mx.cinvestav.emergencias.nodofog.localizacion.LocalizacionService
 import mx.cinvestav.emergencias.nodofog.mqtt.MqttPublisher
 import org.slf4j.LoggerFactory
@@ -17,7 +18,8 @@ class EmergenciaService(
     @Value("\${fog.node-id}") private val nodeId: String,
     private val emergenciaState  : EmergenciaState,
     private val paseListaService : PaseListaService,
-    private val localizacionService: LocalizacionService   // Sprint 3
+    private val localizacionService: LocalizacionService,   // Sprint 3
+    private val incidenteService : IncidenteService
 ) {
     private val log  = LoggerFactory.getLogger(EmergenciaService::class.java)
     private val gson = Gson()
@@ -43,6 +45,7 @@ class EmergenciaService(
 
         // Sprint 3: eliminar ubicaciones de víctimas al terminar emergencia (R7, CA-07)
         localizacionService.limpiarUbicaciones()
+        incidenteService.limpiarIncidentes()
 
         // Publicar NORMAL al estado con retain (bloqueo automático QA-10, R7)
         mqttPublisher.publicar(

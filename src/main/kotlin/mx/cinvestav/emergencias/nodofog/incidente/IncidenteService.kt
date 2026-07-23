@@ -38,6 +38,8 @@ class IncidenteService(
             emergenciaId       = emergenciaState.emergenciaId ?: ""
         )
         val guardado = incidenteRepo.save(entry)
+        log.info("=== INCIDENTE REGISTRADO === tipo={} zona='{}' piso={} reportadoPor={}",
+            guardado.tipo, guardado.zonaNombre, guardado.piso, guardado.reportadoPorId)
         log.info("Incidente registrado — id={} tipo={} zona='{}' reportadoPor={}",
             guardado.id, guardado.tipo, guardado.zonaNombre, guardado.reportadoPorId)
 
